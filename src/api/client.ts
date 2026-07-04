@@ -27,16 +27,32 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   }
   if (authToken) headers.Authorization = `Bearer ${authToken}`
 
-  const res = await fetch(`${BASE}${path}`, { ...options, headers })
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 10000)
 
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}))
-    if (res.status === 401 && authToken && !path.startsWith('/auth/')) {
-      onUnauthorized?.()
+  try {
+    const res = await fetch(`${BASE}${path}`, {
+      ...options,
+      headers,
+      signal: controller.signal,
+    })
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      if (res.status === 401 && authToken && !path.startsWith('/auth/')) {
+        onUnauthorized?.()
+      }
+      throw new Error(body.error || `Request failed: ${res.status}`)
     }
-    throw new Error(body.error || `Request failed: ${res.status}`)
+    return res.json()
+  } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new Error('Request timed out. The server may be unreachable.')
+    }
+    throw err
+  } finally {
+    clearTimeout(timeout)
   }
-  return res.json()
 }
 
 export const api = {

@@ -1,7 +1,7 @@
 import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
-import { connectDB } from './config/db.js'
+import { connectDB, isDBConnected } from './config/db.js'
 import authRouter from './routes/auth.js'
 import accountsRouter from './routes/accounts.js'
 import categoriesRouter from './routes/categories.js'
@@ -16,7 +16,10 @@ app.use(cors())
 app.use(express.json())
 
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok' })
+  res.json({
+    status: 'ok',
+    db: isDBConnected() ? 'connected' : 'disconnected',
+  })
 })
 
 app.use('/api/auth', authRouter)
@@ -31,8 +34,10 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ error: err.message || 'Internal server error' })
 })
 
-await connectDB()
-
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`)
+})
+
+connectDB().catch((err) => {
+  console.error('MongoDB connection failed:', err.message)
 })
