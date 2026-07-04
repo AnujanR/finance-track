@@ -1,0 +1,161 @@
+import type { Account, Budget, Category, Goal, Transaction } from '../types/entities'
+
+export const mockAccounts: Account[] = [
+  {
+    id: 'acc-1',
+    name: 'Main Checking',
+    type: 'checking',
+    balance: 4250.75,
+    currency: 'USD',
+    color: '#3b82f6',
+    createdAt: '2024-01-15',
+  },
+  {
+    id: 'acc-2',
+    name: 'Emergency Savings',
+    type: 'savings',
+    balance: 12800.0,
+    currency: 'USD',
+    color: '#10b981',
+    createdAt: '2024-01-15',
+  },
+  {
+    id: 'acc-3',
+    name: 'Visa Credit',
+    type: 'credit',
+    balance: -1240.5,
+    currency: 'USD',
+    color: '#8b5cf6',
+    createdAt: '2024-03-01',
+  },
+  {
+    id: 'acc-4',
+    name: 'Cash Wallet',
+    type: 'cash',
+    balance: 180.0,
+    currency: 'USD',
+    color: '#f59e0b',
+    createdAt: '2024-06-01',
+  },
+]
+
+export const mockCategories: Category[] = [
+  { id: 'cat-1', name: 'Salary', type: 'income', color: '#10b981', icon: 'briefcase' },
+  { id: 'cat-2', name: 'Freelance', type: 'income', color: '#06b6d4', icon: 'laptop' },
+  { id: 'cat-3', name: 'Groceries', type: 'expense', color: '#f59e0b', icon: 'shopping-cart' },
+  { id: 'cat-4', name: 'Rent', type: 'expense', color: '#ef4444', icon: 'home' },
+  { id: 'cat-5', name: 'Transport', type: 'expense', color: '#3b82f6', icon: 'car' },
+  { id: 'cat-6', name: 'Entertainment', type: 'expense', color: '#ec4899', icon: 'film' },
+  { id: 'cat-7', name: 'Utilities', type: 'expense', color: '#6366f1', icon: 'zap' },
+  { id: 'cat-8', name: 'Healthcare', type: 'expense', color: '#14b8a6', icon: 'heart' },
+]
+
+export const mockTransactions: Transaction[] = [
+  {
+    id: 'txn-1',
+    accountId: 'acc-1',
+    categoryId: 'cat-1',
+    amount: 5200,
+    type: 'income',
+    description: 'Monthly salary',
+    date: '2026-07-01',
+  },
+  {
+    id: 'txn-2',
+    accountId: 'acc-1',
+    categoryId: 'cat-4',
+    amount: 1500,
+    type: 'expense',
+    description: 'July rent',
+    date: '2026-07-01',
+  },
+  {
+    id: 'txn-3',
+    accountId: 'acc-1',
+    categoryId: 'cat-3',
+    amount: 127.43,
+    type: 'expense',
+    description: 'Whole Foods',
+    date: '2026-07-02',
+  },
+  {
+    id: 'txn-4',
+    accountId: 'acc-3',
+    categoryId: 'cat-6',
+    amount: 45.99,
+    type: 'expense',
+    description: 'Netflix + Spotify',
+    date: '2026-07-02',
+  },
+  {
+    id: 'txn-5',
+    accountId: 'acc-1',
+    categoryId: 'cat-5',
+    amount: 62.0,
+    type: 'expense',
+    description: 'Gas station',
+    date: '2026-06-30',
+  },
+  {
+    id: 'txn-6',
+    accountId: 'acc-1',
+    toAccountId: 'acc-2',
+    amount: 500,
+    type: 'transfer',
+    description: 'Monthly savings transfer',
+    date: '2026-07-01',
+  },
+  {
+    id: 'txn-7',
+    accountId: 'acc-1',
+    categoryId: 'cat-7',
+    amount: 89.5,
+    type: 'expense',
+    description: 'Electric bill',
+    date: '2026-06-28',
+  },
+  {
+    id: 'txn-8',
+    accountId: 'acc-2',
+    categoryId: 'cat-2',
+    amount: 850,
+    type: 'income',
+    description: 'Freelance project',
+    date: '2026-06-25',
+  },
+]
+
+export const mockBudgets: Budget[] = [
+  { id: 'bud-1', categoryId: 'cat-3', amount: 500, period: 'monthly', startDate: '2026-07-01' },
+  { id: 'bud-2', categoryId: 'cat-5', amount: 200, period: 'monthly', startDate: '2026-07-01' },
+  { id: 'bud-3', categoryId: 'cat-6', amount: 150, period: 'monthly', startDate: '2026-07-01' },
+  { id: 'bud-4', categoryId: 'cat-7', amount: 250, period: 'monthly', startDate: '2026-07-01' },
+]
+
+export const mockGoals: Goal[] = [
+  {
+    id: 'goal-1',
+    name: 'Vacation Fund',
+    targetAmount: 3000,
+    currentAmount: 1850,
+    deadline: '2026-12-01',
+    accountId: 'acc-2',
+    color: '#06b6d4',
+  },
+  {
+    id: 'goal-2',
+    name: 'New Laptop',
+    targetAmount: 2000,
+    currentAmount: 750,
+    deadline: '2026-09-15',
+    color: '#8b5cf6',
+  },
+  {
+    id: 'goal-3',
+    name: 'Emergency Fund',
+    targetAmount: 15000,
+    currentAmount: 12800,
+    accountId: 'acc-2',
+    color: '#10b981',
+  },
+]
