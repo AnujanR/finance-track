@@ -1,0 +1,12 @@
+services:
+  fintrack:
+    image: anujanr/finance-app:latest
+    container_name: fintrack
+    restart: always
+    ports:
+      - "3002:80"
+    env_file:
+      - .env.fintrack
+    environment:
+      NODE_ENV: production
+      PORT: "3001"
