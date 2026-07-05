@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { format } from 'date-fns'
-import { Trash2 } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
+import { Trash2, Pencil } from 'lucide-react'
 import { useFinance } from '../context/FinanceContext'
 import { Card, CardBody } from '../components/ui/Card'
 import { Button } from '@/components/ui/button'
@@ -26,26 +27,33 @@ import {
 import { formatCurrency, formatDate } from '../utils/format'
 import {
   DATE_FILTER_OPTIONS,
-  getDateRange,
   getFilterPeriodLabel,
   isDateInRange,
-  type DateFilterPreset,
 } from '../utils/dateFilters'
 import { checkBudgetOverflow } from '../utils/budget'
 import { useAlert } from '../components/AlertProvider'
+import type { DateFilterPreset, Transaction } from '../types/entities'
+import { usePersistedDateFilter } from '../hooks/usePersistedDateFilter'
+import { usePagination } from '../hooks/usePagination'
+import { TablePagination } from '@/components/ui/table-pagination'
 
 const today = () => format(new Date(), 'yyyy-MM-dd')
 
+const VALID_PRESETS: DateFilterPreset[] = ['today', 'week', 'month', '6months', 'custom']
+
 export function ExpensesPage() {
-  const { transactions, accounts, categories, budgets, addTransaction, deleteTransaction } =
+  const { transactions, accounts, categories, budgets, addTransaction, updateTransaction, deleteTransaction, updatePreferences } =
     useFinance()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const appliedUrlFilters = useRef(false)
   const { confirm, alert } = useAlert()
   const [showForm, setShowForm] = useState(false)
+  const [editingExpense, setEditingExpense] = useState<Transaction | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
-  const [datePreset, setDatePreset] = useState<DateFilterPreset>('today')
-  const [customFrom, setCustomFrom] = useState(today())
-  const [customTo, setCustomTo] = useState(today())
+  const [categoryFilter, setCategoryFilter] = useState<string | 'all'>('all')
+  const { datePreset, customFrom, customTo, from, to, handlePresetChange, setCustomFrom, setCustomTo } =
+    usePersistedDateFilter('expenses')
   const [form, setForm] = useState({
     description: '',
     amount: '',
@@ -57,25 +65,61 @@ export function ExpensesPage() {
 
   const expenseCategories = categories.filter((c) => c.type === 'expense')
 
-  const { from, to } = useMemo(() => {
-    const range = getDateRange(datePreset, customFrom, customTo)
-    return range.from <= range.to ? range : { from: range.to, to: range.from }
-  }, [datePreset, customFrom, customTo])
+  useEffect(() => {
+    if (appliedUrlFilters.current) return
+
+    const categoryId = searchParams.get('categoryId')
+    const preset = searchParams.get('preset') as DateFilterPreset | null
+    const fromParam = searchParams.get('from')
+    const toParam = searchParams.get('to')
+
+    if (!categoryId && !preset && !(fromParam && toParam)) return
+
+    appliedUrlFilters.current = true
+
+    if (categoryId) setCategoryFilter(categoryId)
+
+    if (preset && VALID_PRESETS.includes(preset)) {
+      handlePresetChange(preset)
+    } else if (fromParam && toParam) {
+      updatePreferences({
+        expensesDateFilter: { preset: 'custom', customFrom: fromParam, customTo: toParam },
+      })
+    }
+
+    setSearchParams({}, { replace: true })
+  }, [searchParams, handlePresetChange, updatePreferences, setSearchParams])
 
   const expenses = useMemo(
     () =>
       transactions
-        .filter((t) => t.type === 'expense' && isDateInRange(t.date, from, to))
+        .filter(
+          (t) =>
+            t.type === 'expense' &&
+            isDateInRange(t.date, from, to) &&
+            (categoryFilter === 'all' || t.categoryId === categoryFilter),
+        )
         .sort((a, b) => b.date.localeCompare(a.date)),
-    [transactions, from, to],
+    [transactions, from, to, categoryFilter],
   )
-
-  const totalSpent = expenses.reduce((sum, e) => sum + e.amount, 0)
-  const periodLabel = getFilterPeriodLabel(from, to)
 
   const getAccountName = (id: string) => accounts.find((a) => a.id === id)?.name ?? 'Unknown'
   const getCategoryName = (id?: string) =>
     id ? categories.find((c) => c.id === id)?.name ?? '—' : '—'
+
+  const totalSpent = expenses.reduce((sum, e) => sum + e.amount, 0)
+  const periodLabel = getFilterPeriodLabel(from, to)
+  const categoryFilterLabel =
+    categoryFilter === 'all' ? null : getCategoryName(categoryFilter)
+
+  const {
+    page,
+    setPage,
+    pageSize,
+    totalPages,
+    totalItems,
+    paginatedItems: paginatedExpenses,
+  } = usePagination(expenses)
 
   const resetForm = () => {
     setForm({
@@ -87,6 +131,7 @@ export function ExpensesPage() {
       notes: '',
     })
     setFormError(null)
+    setEditingExpense(null)
   }
 
   const openForm = () => {
@@ -94,13 +139,23 @@ export function ExpensesPage() {
     setShowForm(true)
   }
 
-  const handlePresetChange = (preset: DateFilterPreset) => {
-    setDatePreset(preset)
-    if (preset !== 'custom') {
-      const range = getDateRange(preset)
-      setCustomFrom(range.from)
-      setCustomTo(range.to)
-    }
+  const openEdit = (expense: Transaction) => {
+    setEditingExpense(expense)
+    setForm({
+      description: expense.description,
+      amount: String(expense.amount),
+      date: expense.date,
+      categoryId: expense.categoryId ?? expenseCategories[0]?.id ?? '',
+      accountId: expense.accountId,
+      notes: expense.notes ?? '',
+    })
+    setFormError(null)
+    setShowForm(true)
+  }
+
+  const closeForm = () => {
+    setShowForm(false)
+    resetForm()
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -133,13 +188,14 @@ export function ExpensesPage() {
         budget.amount,
         budget.period,
         amount,
+        editingExpense?.id,
       )
       if (wouldExceed) {
         const catName = getCategoryName(form.categoryId)
         const proceed = await confirm({
           title: 'Over budget',
-          description: `This will put you ${formatCurrency(overBy)} over your ${budget.period} budget for ${catName}. Add this expense anyway?`,
-          confirmLabel: 'Add anyway',
+          description: `This will put you ${formatCurrency(overBy)} over your ${budget.period} budget for ${catName}. ${editingExpense ? 'Update' : 'Add'} this expense anyway?`,
+          confirmLabel: editingExpense ? 'Update anyway' : 'Add anyway',
           variant: 'warning',
         })
         if (!proceed) return
@@ -148,17 +204,23 @@ export function ExpensesPage() {
 
     setSubmitting(true)
     try {
-      await addTransaction({
-        type: 'expense',
+      const payload = {
         description: form.description.trim(),
         amount,
         date: form.date,
         accountId: form.accountId,
         categoryId: form.categoryId,
         notes: form.notes.trim() || undefined,
-      })
-      setShowForm(false)
-      resetForm()
+      }
+      if (editingExpense) {
+        await updateTransaction(editingExpense.id, payload)
+      } else {
+        await addTransaction({
+          type: 'expense',
+          ...payload,
+        })
+      }
+      closeForm()
     } catch (err) {
       setFormError(err instanceof Error ? err.message : 'Failed to save expense')
     } finally {
@@ -194,7 +256,15 @@ export function ExpensesPage() {
             {expenses.length} expense{expenses.length !== 1 ? 's' : ''} ·{' '}
             <span className="font-semibold text-red-500">{formatCurrency(totalSpent)}</span>
           </p>
-          <p className="mt-0.5 text-xs text-slate-400">{periodLabel}</p>
+          <p className="mt-0.5 text-xs text-slate-400">
+            {periodLabel}
+            {categoryFilterLabel && (
+              <>
+                {' · '}
+                <span className="font-medium text-slate-600">{categoryFilterLabel}</span>
+              </>
+            )}
+          </p>
         </div>
         <Button onClick={openForm}>+ Add Expense</Button>
       </div>
@@ -225,6 +295,30 @@ export function ExpensesPage() {
         </div>
       )}
 
+      <div className="mb-6 flex flex-wrap items-end gap-4">
+        <div className="w-56 space-y-2">
+          <Label className="text-xs text-slate-500">Category</Label>
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="All categories" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All categories</SelectItem>
+              {expenseCategories.map((cat) => (
+                <SelectItem key={cat.id} value={cat.id}>
+                  {cat.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        {categoryFilter !== 'all' && (
+          <Button variant="ghost" size="sm" onClick={() => setCategoryFilter('all')}>
+            Clear category
+          </Button>
+        )}
+      </div>
+
       <Card>
         <CardBody className="p-0">
           <div className="overflow-x-auto">
@@ -243,11 +337,13 @@ export function ExpensesPage() {
                 {expenses.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-12 text-center text-sm text-slate-400">
-                      No expenses for this period. Try a different filter or add a new expense.
+                      {categoryFilter !== 'all'
+                        ? `No expenses in ${categoryFilterLabel ?? 'this category'} for this period.`
+                        : 'No expenses for this period. Try a different filter or add a new expense.'}
                     </td>
                   </tr>
                 ) : (
-                  expenses.map((expense) => (
+                  paginatedExpenses.map((expense) => (
                     <tr key={expense.id} className="hover:bg-slate-50">
                       <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-500">
                         {formatDate(expense.date)}
@@ -268,15 +364,26 @@ export function ExpensesPage() {
                         -{formatCurrency(expense.amount)}
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(expense.id, expense.description)}
-                          className="text-slate-400 hover:bg-red-50 hover:text-red-500"
-                          title="Delete expense"
-                        >
-                          <Trash2 size={16} />
-                        </Button>
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openEdit(expense)}
+                            className="h-8 w-8 text-slate-400 hover:text-slate-700"
+                            title="Edit expense"
+                          >
+                            <Pencil size={14} />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(expense.id, expense.description)}
+                            className="h-8 w-8 text-slate-400 hover:bg-red-50 hover:text-red-500"
+                            title="Delete expense"
+                          >
+                            <Trash2 size={14} />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -284,14 +391,25 @@ export function ExpensesPage() {
               </tbody>
             </table>
           </div>
+          <TablePagination
+            page={page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            pageSize={pageSize}
+            onPageChange={setPage}
+          />
         </CardBody>
       </Card>
 
-      <Dialog open={showForm} onOpenChange={setShowForm}>
+      <Dialog open={showForm} onOpenChange={(open) => !open && closeForm()}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Add Expense</DialogTitle>
-            <DialogDescription>Log a new expense and deduct it from a pot.</DialogDescription>
+            <DialogTitle>{editingExpense ? 'Edit Expense' : 'Add Expense'}</DialogTitle>
+            <DialogDescription>
+              {editingExpense
+                ? 'Update this expense entry.'
+                : 'Log a new expense and deduct it from a pot.'}
+            </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSubmit}>
@@ -392,11 +510,11 @@ export function ExpensesPage() {
             </DialogBody>
 
             <DialogFooter>
-              <Button type="button" variant="ghost" onClick={() => setShowForm(false)}>
+              <Button type="button" variant="ghost" onClick={closeForm}>
                 Cancel
               </Button>
               <Button type="submit" disabled={submitting}>
-                {submitting ? 'Saving…' : 'Save Expense'}
+                {submitting ? 'Saving…' : editingExpense ? 'Update Expense' : 'Save Expense'}
               </Button>
             </DialogFooter>
           </form>

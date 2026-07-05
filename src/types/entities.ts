@@ -65,3 +65,20 @@ export interface Goal {
   accountId?: string
   color: string
 }
+
+/** Saved date range preset for list page filters. */
+export type DateFilterPreset = 'today' | 'week' | 'month' | '6months' | 'custom'
+
+/** Saved date filter for expenses/income list pages. */
+export interface DateFilterPreference {
+  preset: DateFilterPreset
+  customFrom?: string
+  customTo?: string
+}
+
+/** Per-user app settings persisted in the database. */
+export interface AppPreferences {
+  expensesDateFilter: DateFilterPreference
+  incomeDateFilter: DateFilterPreference
+  transactionsDateFilter: DateFilterPreference
+}

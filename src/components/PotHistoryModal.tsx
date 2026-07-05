@@ -1,11 +1,21 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
+import { Pencil, Trash2 } from 'lucide-react'
 import type { Account, Category, Transaction } from '../types/entities'
 import { formatCurrency, formatDate } from '../utils/format'
+import { useFinance } from '../context/FinanceContext'
+import { useAlert } from './AlertProvider'
+import { usePagination } from '../hooks/usePagination'
+import { TablePagination } from '@/components/ui/table-pagination'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { DatePicker } from '@/components/ui/date-picker'
 import {
   Dialog,
   DialogBody,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
@@ -29,6 +39,13 @@ export function PotHistoryModal({
   accounts,
   onClose,
 }: PotHistoryModalProps) {
+  const { updateTransaction, deleteTransaction } = useFinance()
+  const { confirm, alert } = useAlert()
+  const [editingTopUp, setEditingTopUp] = useState<Transaction | null>(null)
+  const [editForm, setEditForm] = useState({ amount: '', date: '', notes: '' })
+  const [submitting, setSubmitting] = useState(false)
+  const [formError, setFormError] = useState<string | null>(null)
+
   const getPotName = (id?: string) => accounts.find((a) => a.id === id)?.name ?? 'Unknown'
   const getCategoryName = (id?: string) =>
     id ? categories.find((c) => c.id === id)?.name ?? '—' : '—'
@@ -59,6 +76,24 @@ export function PotHistoryModal({
     }
   }, [transactions, pot.id])
 
+  const {
+    page: topUpPage,
+    setPage: setTopUpPage,
+    pageSize: topUpPageSize,
+    totalPages: topUpTotalPages,
+    totalItems: topUpTotalItems,
+    paginatedItems: paginatedTopUps,
+  } = usePagination(topUps)
+
+  const {
+    page: expensePage,
+    setPage: setExpensePage,
+    pageSize: expensePageSize,
+    totalPages: expenseTotalPages,
+    totalItems: expenseTotalItems,
+    paginatedItems: paginatedExpenses,
+  } = usePagination(expenses)
+
   const topUpLabel = (txn: Transaction) => {
     if (txn.type === 'transfer') return `From ${getPotName(txn.accountId)}`
     return txn.description
@@ -69,108 +104,265 @@ export function PotHistoryModal({
     return txn.description
   }
 
+  const openEditTopUp = (txn: Transaction) => {
+    setEditingTopUp(txn)
+    setEditForm({
+      amount: String(txn.amount),
+      date: txn.date,
+      notes: txn.notes ?? '',
+    })
+    setFormError(null)
+  }
+
+  const closeEditTopUp = () => {
+    setEditingTopUp(null)
+    setFormError(null)
+  }
+
+  const handleEditTopUp = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingTopUp) return
+    setFormError(null)
+
+    const amount = parseFloat(editForm.amount)
+    if (!amount || amount <= 0) {
+      setFormError('Enter a valid amount')
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      await updateTransaction(editingTopUp.id, {
+        amount,
+        date: editForm.date,
+        notes: editForm.notes.trim() || undefined,
+      })
+      closeEditTopUp()
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'Failed to update top-up')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleDeleteTopUp = async (txn: Transaction) => {
+    const proceed = await confirm({
+      title: 'Delete top-up',
+      description: `Remove this ${formatCurrency(txn.amount)} top-up from ${formatDate(txn.date)}? The pot balance will be adjusted.`,
+      confirmLabel: 'Delete',
+      variant: 'destructive',
+    })
+    if (!proceed) return
+
+    try {
+      await deleteTransaction(txn.id)
+    } catch (err) {
+      await alert({
+        title: 'Could not delete',
+        description: err instanceof Error ? err.message : 'Failed to delete top-up',
+        variant: 'destructive',
+      })
+    }
+  }
+
   return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="flex max-h-[90vh] max-w-3xl flex-col gap-0 p-0">
-        <DialogHeader>
-          <DialogTitle>{pot.name} — History</DialogTitle>
-          <DialogDescription>
-            Balance: {formatCurrency(pot.balance)} · In: {formatCurrency(totalIn)} · Out:{' '}
-            {formatCurrency(totalOut)}
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open onOpenChange={(open) => !open && onClose()}>
+        <DialogContent className="flex max-h-[90vh] max-w-3xl flex-col gap-0 p-0">
+          <DialogHeader>
+            <DialogTitle>{pot.name} — History</DialogTitle>
+            <DialogDescription>
+              Balance: {formatCurrency(pot.balance)} · In: {formatCurrency(totalIn)} · Out:{' '}
+              {formatCurrency(totalOut)}
+            </DialogDescription>
+          </DialogHeader>
 
-        <DialogBody className="flex-1 overflow-y-auto">
-          <section className="mb-8">
-            <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-emerald-700">
-              Top-up history
-            </h3>
-            <div className="overflow-hidden rounded-lg border border-slate-200">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-slate-100 bg-slate-50 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
-                    <th className="px-4 py-2.5">Date</th>
-                    <th className="px-4 py-2.5">Description</th>
-                    <th className="px-4 py-2.5">Note</th>
-                    <th className="px-4 py-2.5 text-right">Amount</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {topUps.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} className="px-4 py-8 text-center text-sm text-slate-400">
-                        No top-ups yet
-                      </td>
+          <DialogBody className="flex-1 overflow-y-auto">
+            <section className="mb-8">
+              <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-emerald-700">
+                Top-up history
+              </h3>
+              <div className="overflow-hidden rounded-lg border border-slate-200">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-slate-100 bg-slate-50 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                      <th className="px-4 py-2.5">Date</th>
+                      <th className="px-4 py-2.5">Description</th>
+                      <th className="px-4 py-2.5">Note</th>
+                      <th className="px-4 py-2.5 text-right">Amount</th>
+                      <th className="px-4 py-2.5 text-right">Actions</th>
                     </tr>
-                  ) : (
-                    topUps.map((txn) => (
-                      <tr key={txn.id} className="hover:bg-slate-50">
-                        <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-500">
-                          {formatDate(txn.date)}
-                        </td>
-                        <td className="px-4 py-3 text-sm font-medium text-slate-900">
-                          {topUpLabel(txn)}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-slate-500">{txn.notes ?? '—'}</td>
-                        <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-semibold text-emerald-600">
-                          +{formatCurrency(txn.amount)}
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {topUps.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="px-4 py-8 text-center text-sm text-slate-400">
+                          No top-ups yet
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </section>
+                    ) : (
+                      paginatedTopUps.map((txn) => (
+                        <tr key={txn.id} className="hover:bg-slate-50">
+                          <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-500">
+                            {formatDate(txn.date)}
+                          </td>
+                          <td className="px-4 py-3 text-sm font-medium text-slate-900">
+                            {topUpLabel(txn)}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-slate-500">{txn.notes ?? '—'}</td>
+                          <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-semibold text-emerald-600">
+                            +{formatCurrency(txn.amount)}
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-3 text-right">
+                            {txn.type === 'topup' ? (
+                              <div className="flex justify-end gap-1">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-slate-500 hover:text-slate-900"
+                                  onClick={() => openEditTopUp(txn)}
+                                  aria-label="Edit top-up"
+                                >
+                                  <Pencil size={15} />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-slate-500 hover:text-red-600"
+                                  onClick={() => handleDeleteTopUp(txn)}
+                                  aria-label="Delete top-up"
+                                >
+                                  <Trash2 size={15} />
+                                </Button>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-slate-300">—</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+                <TablePagination
+                  page={topUpPage}
+                  totalPages={topUpTotalPages}
+                  totalItems={topUpTotalItems}
+                  pageSize={topUpPageSize}
+                  onPageChange={setTopUpPage}
+                />
+              </div>
+            </section>
 
-          <section>
-            <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-red-600">
-              Expense history
-            </h3>
-            <div className="overflow-hidden rounded-lg border border-slate-200">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-slate-100 bg-slate-50 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
-                    <th className="px-4 py-2.5">Date</th>
-                    <th className="px-4 py-2.5">Description</th>
-                    <th className="px-4 py-2.5">Category</th>
-                    <th className="px-4 py-2.5 text-right">Amount</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {expenses.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} className="px-4 py-8 text-center text-sm text-slate-400">
-                        No expenses yet
-                      </td>
+            <section>
+              <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-red-600">
+                Expense history
+              </h3>
+              <div className="overflow-hidden rounded-lg border border-slate-200">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-slate-100 bg-slate-50 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                      <th className="px-4 py-2.5">Date</th>
+                      <th className="px-4 py-2.5">Description</th>
+                      <th className="px-4 py-2.5">Category</th>
+                      <th className="px-4 py-2.5 text-right">Amount</th>
                     </tr>
-                  ) : (
-                    expenses.map((txn) => (
-                      <tr key={txn.id} className="hover:bg-slate-50">
-                        <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-500">
-                          {formatDate(txn.date)}
-                        </td>
-                        <td className="px-4 py-3 text-sm font-medium text-slate-900">
-                          {expenseLabel(txn)}
-                          {txn.notes && (
-                            <p className="mt-0.5 text-xs font-normal text-slate-400">{txn.notes}</p>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-slate-600">
-                          {txn.type === 'expense' ? getCategoryName(txn.categoryId) : 'Transfer'}
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-semibold text-red-500">
-                          -{formatCurrency(txn.amount)}
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {expenses.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="px-4 py-8 text-center text-sm text-slate-400">
+                          No expenses yet
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        </DialogBody>
-      </DialogContent>
-    </Dialog>
+                    ) : (
+                      paginatedExpenses.map((txn) => (
+                        <tr key={txn.id} className="hover:bg-slate-50">
+                          <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-500">
+                            {formatDate(txn.date)}
+                          </td>
+                          <td className="px-4 py-3 text-sm font-medium text-slate-900">
+                            {expenseLabel(txn)}
+                            {txn.notes && (
+                              <p className="mt-0.5 text-xs font-normal text-slate-400">{txn.notes}</p>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-slate-600">
+                            {txn.type === 'expense' ? getCategoryName(txn.categoryId) : 'Transfer'}
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-semibold text-red-500">
+                            -{formatCurrency(txn.amount)}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+                <TablePagination
+                  page={expensePage}
+                  totalPages={expenseTotalPages}
+                  totalItems={expenseTotalItems}
+                  pageSize={expensePageSize}
+                  onPageChange={setExpensePage}
+                />
+              </div>
+            </section>
+          </DialogBody>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!editingTopUp} onOpenChange={(open) => !open && closeEditTopUp()}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Top-up</DialogTitle>
+            <DialogDescription>{pot.name}</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleEditTopUp}>
+            <DialogBody className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-topup-amount">Amount</Label>
+                <Input
+                  id="edit-topup-amount"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={editForm.amount}
+                  onChange={(e) => setEditForm({ ...editForm, amount: e.target.value })}
+                  autoFocus
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Date</Label>
+                <DatePicker
+                  value={editForm.date}
+                  onChange={(date) => setEditForm({ ...editForm, date })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-topup-notes">
+                  Note <span className="font-normal text-slate-400">(optional)</span>
+                </Label>
+                <Input
+                  id="edit-topup-notes"
+                  value={editForm.notes}
+                  onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                />
+              </div>
+              {formError && <p className="text-sm text-red-500">{formError}</p>}
+            </DialogBody>
+            <DialogFooter>
+              <Button type="button" variant="ghost" onClick={closeEditTopUp}>
+                Cancel
+              </Button>
+              <Button type="submit" variant="success" disabled={submitting}>
+                {submitting ? 'Saving…' : 'Save changes'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

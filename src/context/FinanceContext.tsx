@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
-import type { Account, Budget, Category, Goal, Transaction } from '../types/entities'
+import type { Account, AppPreferences, Budget, Category, Goal, Transaction } from '../types/entities'
 import { api } from '../api/client'
+import { defaultAppPreferences, mergeAppPreferences, applyPartialAppPreferences } from '../utils/preferences'
 
 interface FinanceContextValue {
   accounts: Account[]
@@ -8,9 +9,11 @@ interface FinanceContextValue {
   transactions: Transaction[]
   budgets: Budget[]
   goals: Goal[]
+  preferences: AppPreferences
   loading: boolean
   error: string | null
   addTransaction: (txn: Omit<Transaction, 'id'>) => Promise<void>
+  updateTransaction: (id: string, txn: Partial<Omit<Transaction, 'id' | 'type'>>) => Promise<void>
   deleteTransaction: (id: string) => Promise<void>
   topUpPot: (potId: string, amount: number, date?: string, notes?: string) => Promise<void>
   transferPot: (
@@ -29,6 +32,7 @@ interface FinanceContextValue {
   updateGoal: (id: string, goal: Partial<Omit<Goal, 'id'>>) => Promise<void>
   deleteGoal: (id: string) => Promise<void>
   contributeToGoal: (id: string, amount: number) => Promise<void>
+  updatePreferences: (prefs: Partial<AppPreferences>) => Promise<void>
   refresh: () => Promise<void>
 }
 
@@ -40,11 +44,11 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [budgets, setBudgets] = useState<Budget[]>([])
   const [goals, setGoals] = useState<Goal[]>([])
+  const [preferences, setPreferences] = useState<AppPreferences>(defaultAppPreferences())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const refresh = useCallback(async () => {
-    setLoading(true)
     setError(null)
     try {
       const [accs, cats, txns, buds, gls] = await Promise.all([
@@ -61,17 +65,44 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       setGoals(gls)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load data')
-    } finally {
-      setLoading(false)
     }
   }, [])
 
   useEffect(() => {
-    refresh()
-  }, [refresh])
+    async function init() {
+      setLoading(true)
+      setError(null)
+      try {
+        const [accs, cats, txns, buds, gls, prefs] = await Promise.all([
+          api.getAccounts(),
+          api.getCategories(),
+          api.getTransactions(),
+          api.getBudgets(),
+          api.getGoals(),
+          api.getPreferences(),
+        ])
+        setAccounts(accs)
+        setCategories(cats)
+        setTransactions(txns)
+        setBudgets(buds)
+        setGoals(gls)
+        setPreferences(mergeAppPreferences(prefs))
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load data')
+      } finally {
+        setLoading(false)
+      }
+    }
+    init()
+  }, [])
 
   const addTransaction = async (txn: Omit<Transaction, 'id'>) => {
     await api.createTransaction(txn)
+    await refresh()
+  }
+
+  const updateTransaction = async (id: string, txn: Partial<Omit<Transaction, 'id' | 'type'>>) => {
+    await api.updateTransaction(id, txn)
     await refresh()
   }
 
@@ -170,6 +201,22 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     await refresh()
   }
 
+  const updatePreferences = async (partial: Partial<AppPreferences>) => {
+    setPreferences((current) => applyPartialAppPreferences(current, partial))
+    try {
+      const saved = await api.updatePreferences(partial)
+      setPreferences(mergeAppPreferences(saved))
+    } catch (err) {
+      try {
+        const prefs = await api.getPreferences()
+        setPreferences(mergeAppPreferences(prefs))
+      } catch {
+        // Keep optimistic state if reload fails.
+      }
+      throw err
+    }
+  }
+
   return (
     <FinanceContext.Provider
       value={{
@@ -178,9 +225,11 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         transactions,
         budgets,
         goals,
+        preferences,
         loading,
         error,
         addTransaction,
+        updateTransaction,
         deleteTransaction,
         topUpPot,
         transferPot,
@@ -193,6 +242,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         updateGoal,
         deleteGoal,
         contributeToGoal,
+        updatePreferences,
         refresh,
       }}
     >

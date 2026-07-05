@@ -1,11 +1,26 @@
 import mongoose from 'mongoose'
 import bcrypt from 'bcryptjs'
+import { DATE_FILTER_PRESETS, defaultPreferences } from '../constants/preferences.js'
+
+const dateFilterSchema = new mongoose.Schema(
+  {
+    preset: { type: String, enum: DATE_FILTER_PRESETS, default: 'today' },
+    customFrom: { type: String },
+    customTo: { type: String },
+  },
+  { _id: false },
+)
 
 const userSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     password: { type: String, required: true, minlength: 6, select: false },
+    preferences: {
+      expensesDateFilter: { type: dateFilterSchema, default: () => defaultPreferences().expensesDateFilter },
+      incomeDateFilter: { type: dateFilterSchema, default: () => defaultPreferences().incomeDateFilter },
+      transactionsDateFilter: { type: dateFilterSchema, default: () => defaultPreferences().transactionsDateFilter },
+    },
   },
   { timestamps: true },
 )

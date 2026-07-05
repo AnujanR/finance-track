@@ -10,7 +10,7 @@ const accountSchema = new mongoose.Schema(
       required: true,
     },
     balance: { type: Number, default: 0 },
-    currency: { type: String, default: 'USD' },
+    currency: { type: String, default: 'GBP' },
     color: { type: String, default: '#3b82f6' },
   },
   { timestamps: true },
