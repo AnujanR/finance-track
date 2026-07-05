@@ -13,6 +13,7 @@ import {
 import { usePersistedDateFilter } from '../hooks/usePersistedDateFilter'
 import { usePagination } from '../hooks/usePagination'
 import { TablePagination } from '@/components/ui/table-pagination'
+import { PageContainer, PageHeader } from '../components/layout/PageContainer'
 import type { TransactionType } from '../types/entities'
 
 const TYPE_FILTER_OPTIONS: { value: TransactionType | 'all'; label: string }[] = [
@@ -67,10 +68,10 @@ export function TransactionsPage() {
   }
 
   return (
-    <div className="p-8">
-      <div className="mb-6 flex items-end justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Transactions</h1>
+    <PageContainer>
+      <PageHeader>
+        <div className="min-w-0">
+          <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">Transactions</h1>
           <p className="mt-1 text-slate-500">
             {filteredTransactions.length} transaction{filteredTransactions.length !== 1 ? 's' : ''}
             {transactions.length !== filteredTransactions.length &&
@@ -78,7 +79,7 @@ export function TransactionsPage() {
           </p>
           <p className="mt-0.5 text-xs text-slate-400">{periodLabel}</p>
         </div>
-      </div>
+      </PageHeader>
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
         {DATE_FILTER_OPTIONS.map((opt) => (
@@ -95,11 +96,11 @@ export function TransactionsPage() {
 
       {datePreset === 'custom' && (
         <div className="mb-4 flex flex-wrap items-end gap-4">
-          <div className="w-48 space-y-2">
+          <div className="w-full space-y-2 sm:w-48">
             <Label className="text-xs text-slate-500">From</Label>
             <DatePicker value={customFrom} onChange={setCustomFrom} placeholder="Start date" />
           </div>
-          <div className="w-48 space-y-2">
+          <div className="w-full space-y-2 sm:w-48">
             <Label className="text-xs text-slate-500">To</Label>
             <DatePicker value={customTo} onChange={setCustomTo} placeholder="End date" />
           </div>
@@ -125,12 +126,12 @@ export function TransactionsPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-slate-100 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
-                  <th className="px-6 py-3">Date</th>
-                  <th className="px-6 py-3">Description</th>
-                  <th className="px-6 py-3">Category</th>
-                  <th className="px-6 py-3">Account</th>
-                  <th className="px-6 py-3">Type</th>
-                  <th className="px-6 py-3 text-right">Amount</th>
+                  <th className="px-3 py-2.5 sm:px-6 sm:py-3">Date</th>
+                  <th className="px-3 py-2.5 sm:px-6 sm:py-3">Description</th>
+                  <th className="hidden px-3 py-2.5 lg:table-cell sm:px-6 sm:py-3">Category</th>
+                  <th className="hidden px-3 py-2.5 md:table-cell sm:px-6 sm:py-3">Account</th>
+                  <th className="hidden px-3 py-2.5 sm:table-cell sm:px-6 sm:py-3">Type</th>
+                  <th className="px-3 py-2.5 text-right sm:px-6 sm:py-3">Amount</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -144,24 +145,27 @@ export function TransactionsPage() {
                 ) : (
                   paginatedTransactions.map((txn) => (
                     <tr key={txn.id} className="hover:bg-slate-50">
-                      <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-500">
+                      <td className="whitespace-nowrap px-3 py-3 text-sm text-slate-500 sm:px-6 sm:py-4">
                         {formatDate(txn.date)}
                       </td>
-                      <td className="px-6 py-4 text-sm font-medium text-slate-900">
+                      <td className="px-3 py-3 text-sm font-medium text-slate-900 sm:px-6 sm:py-4">
                         {txn.description}
                         {txn.toAccountId && (
                           <span className="ml-1 text-xs text-slate-400">
                             → {getAccountName(txn.toAccountId)}
                           </span>
                         )}
+                        <p className="mt-0.5 text-xs capitalize text-slate-500 sm:hidden">
+                          {txn.type} · {getAccountName(txn.accountId)}
+                        </p>
                       </td>
-                      <td className="px-6 py-4 text-sm text-slate-600">
+                      <td className="hidden px-3 py-3 text-sm text-slate-600 lg:table-cell sm:px-6 sm:py-4">
                         {getCategoryName(txn.categoryId)}
                       </td>
-                      <td className="px-6 py-4 text-sm text-slate-600">
+                      <td className="hidden px-3 py-3 text-sm text-slate-600 md:table-cell sm:px-6 sm:py-4">
                         {getAccountName(txn.accountId)}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="hidden px-3 py-3 sm:table-cell sm:px-6 sm:py-4">
                         <span
                           className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${typeBadge(txn.type)}`}
                         >
@@ -169,7 +173,7 @@ export function TransactionsPage() {
                         </span>
                       </td>
                       <td
-                        className={`whitespace-nowrap px-6 py-4 text-right text-sm font-semibold ${
+                        className={`whitespace-nowrap px-3 py-3 text-right text-sm font-semibold sm:px-6 sm:py-4 ${
                           txn.type === 'income' || txn.type === 'topup'
                             ? 'text-emerald-600'
                             : txn.type === 'expense'
@@ -199,6 +203,6 @@ export function TransactionsPage() {
           />
         </CardBody>
       </Card>
-    </div>
+    </PageContainer>
   )
 }

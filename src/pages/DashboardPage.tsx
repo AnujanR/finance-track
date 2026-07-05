@@ -11,6 +11,7 @@ import {
 } from '../components/dashboard/DashboardCharts'
 import { formatCurrency, formatDate } from '../utils/format'
 import { getFilterPeriodLabel } from '../utils/dateFilters'
+import { PageContainer } from '../components/layout/PageContainer'
 import {
   aggregateByCategory,
   aggregateDailyExpenses,
@@ -56,10 +57,12 @@ export function DashboardPage() {
   }
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
-        <p className="mt-1 text-slate-500">Overview of your financial health · {periodLabel}</p>
+    <PageContainer>
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">Dashboard</h1>
+        <p className="mt-1 text-sm text-slate-500 sm:text-base">
+          Overview of your financial health · {periodLabel}
+        </p>
       </div>
 
       <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -159,15 +162,15 @@ export function DashboardPage() {
               <p className="text-sm text-slate-400">No transactions yet.</p>
             ) : (
               recentTransactions.map((txn) => (
-                <div key={txn.id} className="flex items-center justify-between">
-                  <div>
+                <div key={txn.id} className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
                     <p className="text-sm font-medium text-slate-900">{txn.description}</p>
                     <p className="text-xs text-slate-500">
                       {getCategoryName(txn.categoryId)} · {formatDate(txn.date)}
                     </p>
                   </div>
                   <p
-                    className={`text-sm font-semibold ${
+                    className={`shrink-0 text-sm font-semibold ${
                       txn.type === 'income' || txn.type === 'topup'
                         ? 'text-emerald-600'
                         : txn.type === 'expense'
@@ -188,6 +191,6 @@ export function DashboardPage() {
           </CardBody>
         </Card>
       </div>
-    </div>
+    </PageContainer>
   )
 }

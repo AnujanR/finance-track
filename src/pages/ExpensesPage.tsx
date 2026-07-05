@@ -36,6 +36,7 @@ import type { DateFilterPreset, Transaction } from '../types/entities'
 import { usePersistedDateFilter } from '../hooks/usePersistedDateFilter'
 import { usePagination } from '../hooks/usePagination'
 import { TablePagination } from '@/components/ui/table-pagination'
+import { PageContainer, PageHeader } from '../components/layout/PageContainer'
 
 const today = () => format(new Date(), 'yyyy-MM-dd')
 
@@ -248,10 +249,10 @@ export function ExpensesPage() {
   }
 
   return (
-    <div className="p-8">
-      <div className="mb-6 flex items-end justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Daily Expenses</h1>
+    <PageContainer>
+      <PageHeader>
+        <div className="min-w-0">
+          <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">Daily Expenses</h1>
           <p className="mt-1 text-slate-500">
             {expenses.length} expense{expenses.length !== 1 ? 's' : ''} ·{' '}
             <span className="font-semibold text-red-500">{formatCurrency(totalSpent)}</span>
@@ -266,8 +267,10 @@ export function ExpensesPage() {
             )}
           </p>
         </div>
-        <Button onClick={openForm}>+ Add Expense</Button>
-      </div>
+        <Button onClick={openForm} className="w-full sm:w-auto">
+          + Add Expense
+        </Button>
+      </PageHeader>
 
       <div className="mb-6 flex flex-wrap items-center gap-2">
         {DATE_FILTER_OPTIONS.map((opt) => (
@@ -284,11 +287,11 @@ export function ExpensesPage() {
 
       {datePreset === 'custom' && (
         <div className="mb-6 flex flex-wrap items-end gap-4">
-          <div className="w-48 space-y-2">
+          <div className="w-full space-y-2 sm:w-48">
             <Label className="text-xs text-slate-500">From</Label>
             <DatePicker value={customFrom} onChange={setCustomFrom} placeholder="Start date" />
           </div>
-          <div className="w-48 space-y-2">
+          <div className="w-full space-y-2 sm:w-48">
             <Label className="text-xs text-slate-500">To</Label>
             <DatePicker value={customTo} onChange={setCustomTo} placeholder="End date" />
           </div>
@@ -296,7 +299,7 @@ export function ExpensesPage() {
       )}
 
       <div className="mb-6 flex flex-wrap items-end gap-4">
-        <div className="w-56 space-y-2">
+        <div className="w-full space-y-2 sm:w-56">
           <Label className="text-xs text-slate-500">Category</Label>
           <Select value={categoryFilter} onValueChange={setCategoryFilter}>
             <SelectTrigger>
@@ -325,12 +328,12 @@ export function ExpensesPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-slate-100 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
-                  <th className="px-6 py-3">Date</th>
-                  <th className="px-6 py-3">Description</th>
-                  <th className="px-6 py-3">Category</th>
-                  <th className="px-6 py-3">Pot</th>
-                  <th className="px-6 py-3 text-right">Amount</th>
-                  <th className="px-6 py-3" />
+                  <th className="px-3 py-2.5 sm:px-6 sm:py-3">Date</th>
+                  <th className="px-3 py-2.5 sm:px-6 sm:py-3">Description</th>
+                  <th className="hidden px-3 py-2.5 sm:table-cell sm:px-6 sm:py-3">Category</th>
+                  <th className="hidden px-3 py-2.5 md:table-cell sm:px-6 sm:py-3">Pot</th>
+                  <th className="px-3 py-2.5 text-right sm:px-6 sm:py-3">Amount</th>
+                  <th className="px-3 py-2.5 sm:px-6 sm:py-3" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -345,25 +348,28 @@ export function ExpensesPage() {
                 ) : (
                   paginatedExpenses.map((expense) => (
                     <tr key={expense.id} className="hover:bg-slate-50">
-                      <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-500">
+                      <td className="whitespace-nowrap px-3 py-3 text-sm text-slate-500 sm:px-6 sm:py-4">
                         {formatDate(expense.date)}
                       </td>
-                      <td className="px-6 py-4 text-sm font-medium text-slate-900">
+                      <td className="px-3 py-3 text-sm font-medium text-slate-900 sm:px-6 sm:py-4">
                         {expense.description}
                         {expense.notes && (
                           <p className="mt-0.5 text-xs font-normal text-slate-400">{expense.notes}</p>
                         )}
+                        <p className="mt-0.5 text-xs text-slate-500 sm:hidden">
+                          {getCategoryName(expense.categoryId)} · {getAccountName(expense.accountId)}
+                        </p>
                       </td>
-                      <td className="px-6 py-4 text-sm text-slate-600">
+                      <td className="hidden px-3 py-3 text-sm text-slate-600 sm:table-cell sm:px-6 sm:py-4">
                         {getCategoryName(expense.categoryId)}
                       </td>
-                      <td className="px-6 py-4 text-sm text-slate-600">
+                      <td className="hidden px-3 py-3 text-sm text-slate-600 md:table-cell sm:px-6 sm:py-4">
                         {getAccountName(expense.accountId)}
                       </td>
-                      <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-semibold text-red-500">
+                      <td className="whitespace-nowrap px-3 py-3 text-right text-sm font-semibold text-red-500 sm:px-6 sm:py-4">
                         -{formatCurrency(expense.amount)}
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-3 py-3 text-right sm:px-6 sm:py-4">
                         <div className="flex justify-end gap-1">
                           <Button
                             variant="ghost"
@@ -425,7 +431,7 @@ export function ExpensesPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="amount">Amount</Label>
                   <Input
@@ -520,6 +526,6 @@ export function ExpensesPage() {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContainer>
   )
 }

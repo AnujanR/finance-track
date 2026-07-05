@@ -25,6 +25,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { formatCurrency, DEFAULT_CURRENCY } from '../utils/format'
+import { PageContainer, PageHeader, PageHeaderActions } from '../components/layout/PageContainer'
 import type { AccountType } from '../types/entities'
 
 const accountIcons: Record<AccountType, typeof Landmark> = {
@@ -192,10 +193,10 @@ export function AccountsPage() {
   }
 
   return (
-    <div className="p-8">
-      <div className="mb-8 flex items-end justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Money Pots</h1>
+    <PageContainer>
+      <PageHeader>
+        <div className="min-w-0">
+          <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">Money Pots</h1>
           <p className="mt-1 text-slate-500">
             Set aside money in pots, top them up anytime, and pay expenses from them.
           </p>
@@ -204,16 +205,18 @@ export function AccountsPage() {
             <span className="font-semibold text-slate-900">{formatCurrency(totalBalance)}</span>
           </p>
         </div>
-        <div className="flex gap-2">
+        <PageHeaderActions>
           {accounts.length >= 2 && (
-            <Button variant="outline" onClick={() => openTransfer()}>
+            <Button variant="outline" onClick={() => openTransfer()} className="flex-1 sm:flex-none">
               <ArrowRightLeft size={16} />
               Transfer
             </Button>
           )}
-          <Button onClick={openAdd}>+ Add Pot</Button>
-        </div>
-      </div>
+          <Button onClick={openAdd} className="flex-1 sm:flex-none">
+            + Add Pot
+          </Button>
+        </PageHeaderActions>
+      </PageHeader>
 
       {accounts.length === 0 ? (
         <Card>
@@ -252,7 +255,7 @@ export function AccountsPage() {
                     {formatCurrency(pot.balance)}
                   </p>
                   <p className="mt-1 text-xs text-slate-400">Available to spend</p>
-                  <div className="mt-4 flex gap-2">
+                  <div className="mt-4 flex flex-col gap-2 sm:flex-row">
                     <Button
                       variant="outline"
                       className="flex-1 border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
@@ -485,6 +488,6 @@ export function AccountsPage() {
           onClose={closeModal}
         />
       )}
-    </div>
+    </PageContainer>
   )
 }

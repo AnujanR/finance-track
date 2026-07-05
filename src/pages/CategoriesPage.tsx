@@ -34,6 +34,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import type { CategoryType } from '../types/entities'
+import { PageContainer, PageHeader } from '../components/layout/PageContainer'
 
 const iconMap: Record<string, typeof Briefcase> = {
   briefcase: Briefcase,
@@ -155,16 +156,18 @@ export function CategoriesPage() {
   )
 
   return (
-    <div className="p-8">
-      <div className="mb-8 flex items-end justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Categories</h1>
+    <PageContainer>
+      <PageHeader>
+        <div className="min-w-0">
+          <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">Categories</h1>
           <p className="mt-1 text-slate-500">
             Label your spending — rent, groceries, bills, subscriptions, etc.
           </p>
         </div>
-        <Button onClick={openForm}>+ Add Category</Button>
-      </div>
+        <Button onClick={openForm} className="w-full sm:w-auto">
+          + Add Category
+        </Button>
+      </PageHeader>
 
       <div className="space-y-8">
         <CategoryGrid items={expenseCategories} title="Expenses" />
@@ -247,6 +250,6 @@ export function CategoriesPage() {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContainer>
   )
 }
