@@ -168,7 +168,7 @@ export function PotHistoryModal({
   return (
     <>
       <Dialog open onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="flex max-h-[90vh] max-w-3xl flex-col gap-0 p-0">
+        <DialogContent className="flex max-h-[90dvh] w-[calc(100vw-1.5rem)] max-w-3xl flex-col gap-0 p-0 sm:w-full">
           <DialogHeader>
             <DialogTitle>{pot.name} — History</DialogTitle>
             <DialogDescription>
@@ -186,11 +186,11 @@ export function PotHistoryModal({
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-slate-100 bg-slate-50 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
-                      <th className="px-4 py-2.5">Date</th>
-                      <th className="px-4 py-2.5">Description</th>
-                      <th className="px-4 py-2.5">Note</th>
-                      <th className="px-4 py-2.5 text-right">Amount</th>
-                      <th className="px-4 py-2.5 text-right">Actions</th>
+                      <th className="px-3 py-2.5 sm:px-4">Date</th>
+                      <th className="px-3 py-2.5 sm:px-4">Description</th>
+                      <th className="hidden px-3 py-2.5 sm:table-cell sm:px-4">Note</th>
+                      <th className="px-3 py-2.5 text-right sm:px-4">Amount</th>
+                      <th className="px-3 py-2.5 text-right sm:px-4">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -203,17 +203,24 @@ export function PotHistoryModal({
                     ) : (
                       paginatedTopUps.map((txn) => (
                         <tr key={txn.id} className="hover:bg-slate-50">
-                          <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-500">
+                          <td className="whitespace-nowrap px-3 py-3 text-sm text-slate-500 sm:px-4">
                             {formatDate(txn.date)}
                           </td>
-                          <td className="px-4 py-3 text-sm font-medium text-slate-900">
+                          <td className="px-3 py-3 text-sm font-medium text-slate-900 sm:px-4">
                             {topUpLabel(txn)}
+                            {txn.notes && (
+                              <p className="mt-0.5 text-xs font-normal text-slate-400 sm:hidden">
+                                {txn.notes}
+                              </p>
+                            )}
                           </td>
-                          <td className="px-4 py-3 text-sm text-slate-500">{txn.notes ?? '—'}</td>
-                          <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-semibold text-emerald-600">
+                          <td className="hidden px-3 py-3 text-sm text-slate-500 sm:table-cell sm:px-4">
+                            {txn.notes ?? '—'}
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-3 text-right text-sm font-semibold text-emerald-600 sm:px-4">
                             +{formatCurrency(txn.amount)}
                           </td>
-                          <td className="whitespace-nowrap px-4 py-3 text-right">
+                          <td className="whitespace-nowrap px-3 py-3 text-right sm:px-4">
                             {txn.type === 'topup' ? (
                               <div className="flex justify-end gap-1">
                                 <Button
@@ -264,10 +271,10 @@ export function PotHistoryModal({
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-slate-100 bg-slate-50 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
-                      <th className="px-4 py-2.5">Date</th>
-                      <th className="px-4 py-2.5">Description</th>
-                      <th className="px-4 py-2.5">Category</th>
-                      <th className="px-4 py-2.5 text-right">Amount</th>
+                      <th className="px-3 py-2.5 sm:px-4">Date</th>
+                      <th className="px-3 py-2.5 sm:px-4">Description</th>
+                      <th className="hidden px-3 py-2.5 sm:table-cell sm:px-4">Category</th>
+                      <th className="px-3 py-2.5 text-right sm:px-4">Amount</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -280,19 +287,22 @@ export function PotHistoryModal({
                     ) : (
                       paginatedExpenses.map((txn) => (
                         <tr key={txn.id} className="hover:bg-slate-50">
-                          <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-500">
+                          <td className="whitespace-nowrap px-3 py-3 text-sm text-slate-500 sm:px-4">
                             {formatDate(txn.date)}
                           </td>
-                          <td className="px-4 py-3 text-sm font-medium text-slate-900">
+                          <td className="px-3 py-3 text-sm font-medium text-slate-900 sm:px-4">
                             {expenseLabel(txn)}
                             {txn.notes && (
                               <p className="mt-0.5 text-xs font-normal text-slate-400">{txn.notes}</p>
                             )}
+                            <p className="mt-0.5 text-xs text-slate-500 sm:hidden">
+                              {txn.type === 'expense' ? getCategoryName(txn.categoryId) : 'Transfer'}
+                            </p>
                           </td>
-                          <td className="px-4 py-3 text-sm text-slate-600">
+                          <td className="hidden px-3 py-3 text-sm text-slate-600 sm:table-cell sm:px-4">
                             {txn.type === 'expense' ? getCategoryName(txn.categoryId) : 'Transfer'}
                           </td>
-                          <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-semibold text-red-500">
+                          <td className="whitespace-nowrap px-3 py-3 text-right text-sm font-semibold text-red-500 sm:px-4">
                             -{formatCurrency(txn.amount)}
                           </td>
                         </tr>

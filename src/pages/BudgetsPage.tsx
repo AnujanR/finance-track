@@ -31,6 +31,7 @@ import {
 } from '../utils/budget'
 import { useAlert } from '../components/AlertProvider'
 import type { Budget, BudgetPeriod, Category } from '../types/entities'
+import { PageContainer, PageHeader } from '../components/layout/PageContainer'
 
 const today = () => format(new Date(), 'yyyy-MM-dd')
 
@@ -207,16 +208,16 @@ export function BudgetsPage() {
   )
 
   return (
-    <div className="p-8">
-      <div className="mb-6 flex items-end justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Budgets</h1>
+    <PageContainer>
+      <PageHeader>
+        <div className="min-w-0">
+          <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">Budgets</h1>
           <p className="mt-1 text-slate-500">Set spending limits so you don&apos;t overspend</p>
         </div>
-        <Button onClick={() => openAdd()} disabled={categoriesAvailableForNew.length === 0}>
+        <Button onClick={() => openAdd()} disabled={categoriesAvailableForNew.length === 0} className="w-full sm:w-auto">
           + Add Budget
         </Button>
-      </div>
+      </PageHeader>
 
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
@@ -455,6 +456,6 @@ export function BudgetsPage() {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContainer>
   )
 }

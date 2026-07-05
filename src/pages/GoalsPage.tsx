@@ -25,6 +25,7 @@ import {
 import { formatCurrency, formatDate, formatPercent } from '../utils/format'
 import { useAlert } from '../components/AlertProvider'
 import type { Goal } from '../types/entities'
+import { PageContainer, PageHeader } from '../components/layout/PageContainer'
 
 const colorOptions = [
   { value: '#10b981', label: 'Green' },
@@ -203,14 +204,18 @@ export function GoalsPage() {
   }
 
   return (
-    <div className="p-8">
-      <div className="mb-6 flex items-end justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Savings Goals</h1>
-          <p className="mt-1 text-slate-500">Track progress toward your financial targets</p>
+    <PageContainer>
+      <PageHeader>
+        <div className="min-w-0">
+          <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">Savings Goals</h1>
+          <p className="mt-1 text-sm text-slate-500 sm:text-base">
+            Track progress toward your financial targets
+          </p>
         </div>
-        <Button onClick={openAdd}>+ Add Goal</Button>
-      </div>
+        <Button onClick={openAdd} className="w-full sm:w-auto">
+          + Add Goal
+        </Button>
+      </PageHeader>
 
       {goals.length > 0 && (
         <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -353,7 +358,7 @@ export function GoalsPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="goal-target">Target amount</Label>
                   <Input
@@ -478,6 +483,6 @@ export function GoalsPage() {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContainer>
   )
 }

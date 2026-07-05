@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import {
   Bar,
   BarChart,
@@ -53,7 +54,17 @@ function DailyTooltip({
 
 function EmptyChart({ message }: { message: string }) {
   return (
-    <div className="flex h-64 items-center justify-center text-sm text-slate-400">{message}</div>
+    <div className="flex h-56 items-center justify-center text-sm text-slate-400 sm:h-64">{message}</div>
+  )
+}
+
+function ChartFrame({ children }: { children: ReactNode }) {
+  return (
+    <div className="h-56 sm:h-72">
+      <ResponsiveContainer width="100%" height="100%">
+        {children}
+      </ResponsiveContainer>
+    </div>
   )
 }
 
@@ -83,7 +94,7 @@ export function CategoryDonutChart({
         {data.length === 0 ? (
           <EmptyChart message={emptyMessage} />
         ) : (
-          <ResponsiveContainer width="100%" height={280}>
+          <ChartFrame>
             <PieChart>
               <Pie
                 data={data}
@@ -117,7 +128,7 @@ export function CategoryDonutChart({
                 formatter={(value) => <span className="text-xs text-slate-600">{value}</span>}
               />
             </PieChart>
-          </ResponsiveContainer>
+          </ChartFrame>
         )}
       </CardBody>
     </Card>
@@ -147,7 +158,7 @@ export function DailyExpensesBarChart({
         {!hasSpending ? (
           <EmptyChart message={emptyMessage} />
         ) : (
-          <ResponsiveContainer width="100%" height={280}>
+          <ChartFrame>
             <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
               <XAxis
@@ -167,7 +178,7 @@ export function DailyExpensesBarChart({
               <Tooltip content={<DailyTooltip />} />
               <Bar dataKey="amount" fill="#ef4444" radius={[4, 4, 0, 0]} maxBarSize={28} />
             </BarChart>
-          </ResponsiveContainer>
+          </ChartFrame>
         )}
       </CardBody>
     </Card>
@@ -200,7 +211,7 @@ export function IncomeExpenseBarChart({
         {income === 0 && expenses === 0 ? (
           <EmptyChart message="No income or expenses this month yet." />
         ) : (
-          <ResponsiveContainer width="100%" height={280}>
+          <ChartFrame>
             <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
               <XAxis
@@ -223,7 +234,7 @@ export function IncomeExpenseBarChart({
                 ))}
               </Bar>
             </BarChart>
-          </ResponsiveContainer>
+          </ChartFrame>
         )}
       </CardBody>
     </Card>

@@ -34,6 +34,7 @@ import type { Transaction } from '../types/entities'
 import { usePersistedDateFilter } from '../hooks/usePersistedDateFilter'
 import { usePagination } from '../hooks/usePagination'
 import { TablePagination } from '@/components/ui/table-pagination'
+import { PageContainer, PageHeader } from '../components/layout/PageContainer'
 
 const today = () => format(new Date(), 'yyyy-MM-dd')
 
@@ -186,18 +187,20 @@ export function IncomePage() {
   }
 
   return (
-    <div className="p-8">
-      <div className="mb-6 flex items-end justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Income</h1>
+    <PageContainer>
+      <PageHeader>
+        <div className="min-w-0">
+          <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">Income</h1>
           <p className="mt-1 text-slate-500">
             {incomeItems.length} entr{incomeItems.length !== 1 ? 'ies' : 'y'} ·{' '}
             <span className="font-semibold text-emerald-600">{formatCurrency(totalEarned)}</span>
           </p>
           <p className="mt-0.5 text-xs text-slate-400">{periodLabel}</p>
         </div>
-        <Button onClick={openForm}>+ Add Income</Button>
-      </div>
+        <Button onClick={openForm} className="w-full sm:w-auto">
+          + Add Income
+        </Button>
+      </PageHeader>
 
       <div className="mb-6 flex flex-wrap items-center gap-2">
         {DATE_FILTER_OPTIONS.map((opt) => (
@@ -214,11 +217,11 @@ export function IncomePage() {
 
       {datePreset === 'custom' && (
         <div className="mb-6 flex flex-wrap items-end gap-4">
-          <div className="w-48 space-y-2">
+          <div className="w-full space-y-2 sm:w-48">
             <Label className="text-xs text-slate-500">From</Label>
             <DatePicker value={customFrom} onChange={setCustomFrom} placeholder="Start date" />
           </div>
-          <div className="w-48 space-y-2">
+          <div className="w-full space-y-2 sm:w-48">
             <Label className="text-xs text-slate-500">To</Label>
             <DatePicker value={customTo} onChange={setCustomTo} placeholder="End date" />
           </div>
@@ -231,12 +234,12 @@ export function IncomePage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-slate-100 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
-                  <th className="px-6 py-3">Date</th>
-                  <th className="px-6 py-3">Description</th>
-                  <th className="px-6 py-3">Category</th>
-                  <th className="px-6 py-3">Pot</th>
-                  <th className="px-6 py-3 text-right">Amount</th>
-                  <th className="px-6 py-3" />
+                  <th className="px-3 py-2.5 sm:px-6 sm:py-3">Date</th>
+                  <th className="px-3 py-2.5 sm:px-6 sm:py-3">Description</th>
+                  <th className="hidden px-3 py-2.5 sm:table-cell sm:px-6 sm:py-3">Category</th>
+                  <th className="hidden px-3 py-2.5 md:table-cell sm:px-6 sm:py-3">Pot</th>
+                  <th className="px-3 py-2.5 text-right sm:px-6 sm:py-3">Amount</th>
+                  <th className="px-3 py-2.5 sm:px-6 sm:py-3" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -249,25 +252,28 @@ export function IncomePage() {
                 ) : (
                   paginatedIncome.map((item) => (
                     <tr key={item.id} className="hover:bg-slate-50">
-                      <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-500">
+                      <td className="whitespace-nowrap px-3 py-3 text-sm text-slate-500 sm:px-6 sm:py-4">
                         {formatDate(item.date)}
                       </td>
-                      <td className="px-6 py-4 text-sm font-medium text-slate-900">
+                      <td className="px-3 py-3 text-sm font-medium text-slate-900 sm:px-6 sm:py-4">
                         {item.description}
                         {item.notes && (
                           <p className="mt-0.5 text-xs font-normal text-slate-400">{item.notes}</p>
                         )}
+                        <p className="mt-0.5 text-xs text-slate-500 sm:hidden">
+                          {getCategoryName(item.categoryId)} · {getAccountName(item.accountId)}
+                        </p>
                       </td>
-                      <td className="px-6 py-4 text-sm text-slate-600">
+                      <td className="hidden px-3 py-3 text-sm text-slate-600 sm:table-cell sm:px-6 sm:py-4">
                         {getCategoryName(item.categoryId)}
                       </td>
-                      <td className="px-6 py-4 text-sm text-slate-600">
+                      <td className="hidden px-3 py-3 text-sm text-slate-600 md:table-cell sm:px-6 sm:py-4">
                         {getAccountName(item.accountId)}
                       </td>
-                      <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-semibold text-emerald-600">
+                      <td className="whitespace-nowrap px-3 py-3 text-right text-sm font-semibold text-emerald-600 sm:px-6 sm:py-4">
                         +{formatCurrency(item.amount)}
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-3 py-3 text-right sm:px-6 sm:py-4">
                         <div className="flex justify-end gap-1">
                           <Button
                             variant="ghost"
@@ -329,7 +335,7 @@ export function IncomePage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="income-amount">Amount</Label>
                   <Input
@@ -424,6 +430,6 @@ export function IncomePage() {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContainer>
   )
 }

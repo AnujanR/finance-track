@@ -22,12 +22,12 @@ export function TablePagination({
   const end = Math.min(page * pageSize, totalItems)
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-6 py-3">
+    <div className="flex flex-col gap-3 border-t border-slate-100 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
       <p className="text-sm text-slate-500">
         Showing {start}–{end} of {totalItems}
       </p>
       {totalPages > 1 && (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between gap-2 sm:justify-end">
           <Button
             type="button"
             variant="outline"
@@ -36,10 +36,10 @@ export function TablePagination({
             disabled={page <= 1}
           >
             <ChevronLeft size={16} />
-            Previous
+            <span className="hidden sm:inline">Previous</span>
           </Button>
           <span className="text-sm text-slate-600">
-            Page {page} of {totalPages}
+            {page} / {totalPages}
           </span>
           <Button
             type="button"
@@ -48,7 +48,7 @@ export function TablePagination({
             onClick={() => onPageChange(page + 1)}
             disabled={page >= totalPages}
           >
-            Next
+            <span className="hidden sm:inline">Next</span>
             <ChevronRight size={16} />
           </Button>
         </div>
