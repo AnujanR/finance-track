@@ -1,63 +1,124 @@
 import { useMemo } from 'react'
-import { ArrowDownLeft, ArrowUpRight, DollarSign, Wallet } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { ArrowDownLeft, ArrowUpRight, PoundSterling, Wallet } from 'lucide-react'
 import { useFinance } from '../context/FinanceContext'
 import { StatCard } from '../components/ui/StatCard'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
+import {
+  CategoryDonutChart,
+  DailyExpensesBarChart,
+  IncomeExpenseBarChart,
+} from '../components/dashboard/DashboardCharts'
 import { formatCurrency, formatDate } from '../utils/format'
+import { getFilterPeriodLabel } from '../utils/dateFilters'
+import {
+  aggregateByCategory,
+  aggregateDailyExpenses,
+  getCurrentMonthRange,
+  getIncomeExpenseTotals,
+} from '../utils/dashboardCharts'
 
 export function DashboardPage() {
+  const navigate = useNavigate()
   const { accounts, transactions, categories } = useFinance()
+
+  const { from, to } = useMemo(() => getCurrentMonthRange(), [])
+  const periodLabel = getFilterPeriodLabel(from, to)
+
+  const chartData = useMemo(
+    () => ({
+      expenseSlices: aggregateByCategory(transactions, categories, 'expense', from, to),
+      incomeSlices: aggregateByCategory(transactions, categories, 'income', from, to),
+      dailyExpenses: aggregateDailyExpenses(transactions, from, to),
+      totals: getIncomeExpenseTotals(transactions, from, to),
+    }),
+    [transactions, categories, from, to],
+  )
 
   const stats = useMemo(() => {
     const netWorth = accounts.reduce((sum, a) => sum + a.balance, 0)
-    const income = transactions
-      .filter((t) => t.type === 'income')
-      .reduce((sum, t) => sum + t.amount, 0)
-    const expenses = transactions
-      .filter((t) => t.type === 'expense')
-      .reduce((sum, t) => sum + t.amount, 0)
+    const { income, expenses } = chartData.totals
 
     return { netWorth, income, expenses, savings: income - expenses }
-  }, [accounts, transactions])
+  }, [accounts, chartData.totals])
 
-  const recentTransactions = transactions.slice(0, 5)
+  const recentTransactions = useMemo(
+    () => [...transactions].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5),
+    [transactions],
+  )
 
   const getCategoryName = (categoryId?: string) =>
     categories.find((c) => c.id === categoryId)?.name ?? 'Transfer'
+
+  const handleExpenseCategoryClick = (slice: { categoryId?: string }) => {
+    if (!slice.categoryId) return
+    navigate(`/expenses?categoryId=${encodeURIComponent(slice.categoryId)}&preset=month`)
+  }
 
   return (
     <div className="p-8">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
-        <p className="mt-1 text-slate-500">Overview of your financial health</p>
+        <p className="mt-1 text-slate-500">Overview of your financial health · {periodLabel}</p>
       </div>
 
       <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="Net Worth"
           value={formatCurrency(stats.netWorth)}
-          change="+2.4% from last month"
-          changeType="positive"
-          icon={DollarSign}
+          icon={PoundSterling}
         />
         <StatCard
-          label="Total Income"
+          label="Income (this month)"
           value={formatCurrency(stats.income)}
           icon={ArrowDownLeft}
           iconColor="bg-emerald-100 text-emerald-600"
         />
         <StatCard
-          label="Total Expenses"
+          label="Expenses (this month)"
           value={formatCurrency(stats.expenses)}
           icon={ArrowUpRight}
           iconColor="bg-red-100 text-red-500"
         />
         <StatCard
-          label="Net Savings"
+          label="Net Savings (this month)"
           value={formatCurrency(stats.savings)}
           changeType={stats.savings >= 0 ? 'positive' : 'negative'}
           icon={Wallet}
           iconColor="bg-blue-100 text-blue-600"
+        />
+      </div>
+
+      <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <CategoryDonutChart
+          title="Expenses by Category"
+          subtitle={periodLabel}
+          data={chartData.expenseSlices}
+          emptyMessage="No expenses recorded this month."
+          onSliceClick={handleExpenseCategoryClick}
+        />
+        <CategoryDonutChart
+          title="Income by Category"
+          subtitle={periodLabel}
+          data={chartData.incomeSlices}
+          emptyMessage="No income recorded this month."
+        />
+      </div>
+
+      <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <DailyExpensesBarChart
+            title="Daily Spending"
+            subtitle={`Expense totals per day · ${periodLabel}`}
+            data={chartData.dailyExpenses}
+            emptyMessage="No daily spending recorded this month."
+          />
+        </div>
+        <IncomeExpenseBarChart
+          title="Income vs Expenses"
+          subtitle={periodLabel}
+          income={chartData.totals.income}
+          expenses={chartData.totals.expenses}
         />
       </div>
 
@@ -79,7 +140,9 @@ export function DashboardPage() {
                     <p className="text-xs capitalize text-slate-500">{account.type}</p>
                   </div>
                 </div>
-                <p className={`text-sm font-semibold ${account.balance < 0 ? 'text-red-500' : 'text-slate-900'}`}>
+                <p
+                  className={`text-sm font-semibold ${account.balance < 0 ? 'text-red-500' : 'text-slate-900'}`}
+                >
                   {formatCurrency(account.balance)}
                 </p>
               </div>
@@ -92,28 +155,36 @@ export function DashboardPage() {
             <h2 className="font-semibold text-slate-900">Recent Transactions</h2>
           </CardHeader>
           <CardBody className="space-y-3">
-            {recentTransactions.map((txn) => (
-              <div key={txn.id} className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-slate-900">{txn.description}</p>
-                  <p className="text-xs text-slate-500">
-                    {getCategoryName(txn.categoryId)} · {formatDate(txn.date)}
+            {recentTransactions.length === 0 ? (
+              <p className="text-sm text-slate-400">No transactions yet.</p>
+            ) : (
+              recentTransactions.map((txn) => (
+                <div key={txn.id} className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-slate-900">{txn.description}</p>
+                    <p className="text-xs text-slate-500">
+                      {getCategoryName(txn.categoryId)} · {formatDate(txn.date)}
+                    </p>
+                  </div>
+                  <p
+                    className={`text-sm font-semibold ${
+                      txn.type === 'income' || txn.type === 'topup'
+                        ? 'text-emerald-600'
+                        : txn.type === 'expense'
+                          ? 'text-red-500'
+                          : 'text-slate-600'
+                    }`}
+                  >
+                    {txn.type === 'income' || txn.type === 'topup'
+                      ? '+'
+                      : txn.type === 'expense'
+                        ? '-'
+                        : ''}
+                    {formatCurrency(txn.amount)}
                   </p>
                 </div>
-                <p
-                  className={`text-sm font-semibold ${
-                    txn.type === 'income' || txn.type === 'topup'
-                      ? 'text-emerald-600'
-                      : txn.type === 'expense'
-                        ? 'text-red-500'
-                        : 'text-slate-600'
-                  }`}
-                >
-                  {txn.type === 'income' || txn.type === 'topup' ? '+' : txn.type === 'expense' ? '-' : ''}
-                  {formatCurrency(txn.amount)}
-                </p>
-              </div>
-            ))}
+              ))
+            )}
           </CardBody>
         </Card>
       </div>

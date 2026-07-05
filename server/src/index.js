@@ -8,6 +8,7 @@ import categoriesRouter from './routes/categories.js'
 import transactionsRouter from './routes/transactions.js'
 import budgetsRouter from './routes/budgets.js'
 import goalsRouter from './routes/goals.js'
+import preferencesRouter from './routes/preferences.js'
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -28,6 +29,7 @@ app.use('/api/categories', categoriesRouter)
 app.use('/api/transactions', transactionsRouter)
 app.use('/api/budgets', budgetsRouter)
 app.use('/api/goals', goalsRouter)
+app.use('/api/preferences', preferencesRouter)
 
 app.use((err, _req, res, _next) => {
   console.error(err)

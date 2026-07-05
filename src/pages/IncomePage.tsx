@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { format } from 'date-fns'
-import { Trash2 } from 'lucide-react'
+import { Trash2, Pencil } from 'lucide-react'
 import { useFinance } from '../context/FinanceContext'
 import { Card, CardBody } from '../components/ui/Card'
 import { Button } from '@/components/ui/button'
@@ -26,24 +26,26 @@ import {
 import { formatCurrency, formatDate } from '../utils/format'
 import {
   DATE_FILTER_OPTIONS,
-  getDateRange,
   getFilterPeriodLabel,
   isDateInRange,
-  type DateFilterPreset,
 } from '../utils/dateFilters'
 import { useAlert } from '../components/AlertProvider'
+import type { Transaction } from '../types/entities'
+import { usePersistedDateFilter } from '../hooks/usePersistedDateFilter'
+import { usePagination } from '../hooks/usePagination'
+import { TablePagination } from '@/components/ui/table-pagination'
 
 const today = () => format(new Date(), 'yyyy-MM-dd')
 
 export function IncomePage() {
-  const { transactions, accounts, categories, addTransaction, deleteTransaction } = useFinance()
+  const { transactions, accounts, categories, addTransaction, updateTransaction, deleteTransaction } = useFinance()
   const { confirm, alert } = useAlert()
   const [showForm, setShowForm] = useState(false)
+  const [editingIncome, setEditingIncome] = useState<Transaction | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
-  const [datePreset, setDatePreset] = useState<DateFilterPreset>('today')
-  const [customFrom, setCustomFrom] = useState(today())
-  const [customTo, setCustomTo] = useState(today())
+  const { datePreset, customFrom, customTo, from, to, handlePresetChange, setCustomFrom, setCustomTo } =
+    usePersistedDateFilter('income')
   const [form, setForm] = useState({
     description: '',
     amount: '',
@@ -55,11 +57,6 @@ export function IncomePage() {
 
   const incomeCategories = categories.filter((c) => c.type === 'income')
 
-  const { from, to } = useMemo(() => {
-    const range = getDateRange(datePreset, customFrom, customTo)
-    return range.from <= range.to ? range : { from: range.to, to: range.from }
-  }, [datePreset, customFrom, customTo])
-
   const incomeItems = useMemo(
     () =>
       transactions
@@ -70,6 +67,15 @@ export function IncomePage() {
 
   const totalEarned = incomeItems.reduce((sum, item) => sum + item.amount, 0)
   const periodLabel = getFilterPeriodLabel(from, to)
+
+  const {
+    page,
+    setPage,
+    pageSize,
+    totalPages,
+    totalItems,
+    paginatedItems: paginatedIncome,
+  } = usePagination(incomeItems)
 
   const getAccountName = (id: string) => accounts.find((a) => a.id === id)?.name ?? 'Unknown'
   const getCategoryName = (id?: string) =>
@@ -85,6 +91,7 @@ export function IncomePage() {
       notes: '',
     })
     setFormError(null)
+    setEditingIncome(null)
   }
 
   const openForm = () => {
@@ -92,13 +99,23 @@ export function IncomePage() {
     setShowForm(true)
   }
 
-  const handlePresetChange = (preset: DateFilterPreset) => {
-    setDatePreset(preset)
-    if (preset !== 'custom') {
-      const range = getDateRange(preset)
-      setCustomFrom(range.from)
-      setCustomTo(range.to)
-    }
+  const openEdit = (item: Transaction) => {
+    setEditingIncome(item)
+    setForm({
+      description: item.description,
+      amount: String(item.amount),
+      date: item.date,
+      categoryId: item.categoryId ?? incomeCategories[0]?.id ?? '',
+      accountId: item.accountId,
+      notes: item.notes ?? '',
+    })
+    setFormError(null)
+    setShowForm(true)
+  }
+
+  const closeForm = () => {
+    setShowForm(false)
+    resetForm()
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -125,17 +142,23 @@ export function IncomePage() {
 
     setSubmitting(true)
     try {
-      await addTransaction({
-        type: 'income',
+      const payload = {
         description: form.description.trim(),
         amount,
         date: form.date,
         accountId: form.accountId,
         categoryId: form.categoryId,
         notes: form.notes.trim() || undefined,
-      })
-      setShowForm(false)
-      resetForm()
+      }
+      if (editingIncome) {
+        await updateTransaction(editingIncome.id, payload)
+      } else {
+        await addTransaction({
+          type: 'income',
+          ...payload,
+        })
+      }
+      closeForm()
     } catch (err) {
       setFormError(err instanceof Error ? err.message : 'Failed to save income')
     } finally {
@@ -224,7 +247,7 @@ export function IncomePage() {
                     </td>
                   </tr>
                 ) : (
-                  incomeItems.map((item) => (
+                  paginatedIncome.map((item) => (
                     <tr key={item.id} className="hover:bg-slate-50">
                       <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-500">
                         {formatDate(item.date)}
@@ -245,15 +268,26 @@ export function IncomePage() {
                         +{formatCurrency(item.amount)}
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(item.id, item.description)}
-                          className="text-slate-400 hover:bg-red-50 hover:text-red-500"
-                          title="Delete income"
-                        >
-                          <Trash2 size={16} />
-                        </Button>
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openEdit(item)}
+                            className="h-8 w-8 text-slate-400 hover:text-slate-700"
+                            title="Edit income"
+                          >
+                            <Pencil size={14} />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(item.id, item.description)}
+                            className="h-8 w-8 text-slate-400 hover:bg-red-50 hover:text-red-500"
+                            title="Delete income"
+                          >
+                            <Trash2 size={14} />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -261,14 +295,25 @@ export function IncomePage() {
               </tbody>
             </table>
           </div>
+          <TablePagination
+            page={page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            pageSize={pageSize}
+            onPageChange={setPage}
+          />
         </CardBody>
       </Card>
 
-      <Dialog open={showForm} onOpenChange={setShowForm}>
+      <Dialog open={showForm} onOpenChange={(open) => !open && closeForm()}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Add Income</DialogTitle>
-            <DialogDescription>Log money received and deposit it into a pot.</DialogDescription>
+            <DialogTitle>{editingIncome ? 'Edit Income' : 'Add Income'}</DialogTitle>
+            <DialogDescription>
+              {editingIncome
+                ? 'Update this income entry.'
+                : 'Log money received and deposit it into a pot.'}
+            </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSubmit}>
@@ -369,11 +414,11 @@ export function IncomePage() {
             </DialogBody>
 
             <DialogFooter>
-              <Button type="button" variant="ghost" onClick={() => setShowForm(false)}>
+              <Button type="button" variant="ghost" onClick={closeForm}>
                 Cancel
               </Button>
               <Button type="submit" variant="success" disabled={submitting}>
-                {submitting ? 'Saving…' : 'Save Income'}
+                {submitting ? 'Saving…' : editingIncome ? 'Update Income' : 'Save Income'}
               </Button>
             </DialogFooter>
           </form>

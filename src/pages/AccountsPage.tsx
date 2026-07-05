@@ -24,7 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { formatCurrency } from '../utils/format'
+import { formatCurrency, DEFAULT_CURRENCY } from '../utils/format'
 import type { AccountType } from '../types/entities'
 
 const accountIcons: Record<AccountType, typeof Landmark> = {
@@ -122,7 +122,7 @@ export function AccountsPage() {
         name: addForm.name.trim(),
         type: 'cash',
         balance,
-        currency: 'USD',
+        currency: DEFAULT_CURRENCY,
         color: addForm.color,
       })
       closeModal()
@@ -249,7 +249,7 @@ export function AccountsPage() {
                   </div>
                   <h3 className="mt-4 text-lg font-semibold text-slate-900">{pot.name}</h3>
                   <p className={`mt-1 text-2xl font-bold ${pot.balance < 0 ? 'text-red-500' : 'text-slate-900'}`}>
-                    {formatCurrency(pot.balance, pot.currency)}
+                    {formatCurrency(pot.balance)}
                   </p>
                   <p className="mt-1 text-xs text-slate-400">Available to spend</p>
                   <div className="mt-4 flex gap-2">

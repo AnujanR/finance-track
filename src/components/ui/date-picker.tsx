@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { format, parseISO } from 'date-fns'
+import { format } from 'date-fns'
 import { CalendarIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -14,6 +14,11 @@ interface DatePickerProps {
   disabled?: boolean
 }
 
+function parseDateValue(value: string): Date {
+  const [year, month, day] = value.split('-').map(Number)
+  return new Date(year, month - 1, day)
+}
+
 export function DatePicker({
   value,
   onChange,
@@ -22,7 +27,7 @@ export function DatePicker({
   disabled,
 }: DatePickerProps) {
   const [open, setOpen] = useState(false)
-  const date = value ? parseISO(value) : undefined
+  const date = value ? parseDateValue(value) : undefined
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -41,7 +46,10 @@ export function DatePicker({
           {date ? format(date, 'MMM d, yyyy') : placeholder}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
+      <PopoverContent
+        className="w-auto p-0"
+        align="start"
+      >
         <Calendar
           mode="single"
           selected={date}

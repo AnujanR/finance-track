@@ -1,7 +1,9 @@
 import { format, parseISO } from 'date-fns'
 
-export function formatCurrency(amount: number, currency = 'USD'): string {
-  return new Intl.NumberFormat('en-US', {
+export const DEFAULT_CURRENCY = 'GBP'
+
+export function formatCurrency(amount: number, currency = DEFAULT_CURRENCY): string {
+  return new Intl.NumberFormat('en-GB', {
     style: 'currency',
     currency,
     minimumFractionDigits: 2,

@@ -7,7 +7,9 @@ import {
   subMonths,
 } from 'date-fns'
 
-export type DateFilterPreset = 'today' | 'week' | 'month' | '6months' | 'custom'
+import type { DateFilterPreset } from '../types/entities'
+
+export type { DateFilterPreset }
 
 export const DATE_FILTER_OPTIONS: { value: DateFilterPreset; label: string }[] = [
   { value: 'today', label: 'Today' },

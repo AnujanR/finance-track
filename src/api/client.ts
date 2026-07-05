@@ -1,4 +1,4 @@
-import type { Account, Budget, Category, Goal, Transaction, User } from '../types/entities'
+import type { Account, AppPreferences, Budget, Category, Goal, Transaction, User } from '../types/entities'
 
 const BASE = '/api'
 const TOKEN_KEY = 'fintrack_token'
@@ -81,6 +81,8 @@ export const api = {
   getTransactions: () => request<Transaction[]>('/transactions'),
   createTransaction: (data: Omit<Transaction, 'id'>) =>
     request<Transaction>('/transactions', { method: 'POST', body: JSON.stringify(data) }),
+  updateTransaction: (id: string, data: Partial<Omit<Transaction, 'id' | 'type'>>) =>
+    request<Transaction>(`/transactions/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteTransaction: (id: string) =>
     request<{ message: string }>(`/transactions/${id}`, { method: 'DELETE' }),
 
@@ -99,4 +101,8 @@ export const api = {
     request<Goal>(`/goals/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteGoal: (id: string) =>
     request<{ message: string }>(`/goals/${id}`, { method: 'DELETE' }),
+
+  getPreferences: () => request<AppPreferences>('/preferences'),
+  updatePreferences: (data: Partial<AppPreferences>) =>
+    request<AppPreferences>('/preferences', { method: 'PATCH', body: JSON.stringify(data) }),
 }

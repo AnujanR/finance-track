@@ -20,10 +20,10 @@ const categories = [
 ]
 
 const accounts = [
-  { name: 'Main Checking', type: 'checking', balance: 4250.75, currency: 'USD', color: '#3b82f6' },
-  { name: 'Emergency Savings', type: 'savings', balance: 12800.0, currency: 'USD', color: '#10b981' },
-  { name: 'Visa Credit', type: 'credit', balance: -1240.5, currency: 'USD', color: '#8b5cf6' },
-  { name: 'Cash Wallet', type: 'cash', balance: 180.0, currency: 'USD', color: '#f59e0b' },
+  { name: 'Main Checking', type: 'checking', balance: 4250.75, currency: 'GBP', color: '#3b82f6' },
+  { name: 'Emergency Savings', type: 'savings', balance: 12800.0, currency: 'GBP', color: '#10b981' },
+  { name: 'Visa Credit', type: 'credit', balance: -1240.5, currency: 'GBP', color: '#8b5cf6' },
+  { name: 'Cash Wallet', type: 'cash', balance: 180.0, currency: 'GBP', color: '#f59e0b' },
 ]
 
 async function seed() {

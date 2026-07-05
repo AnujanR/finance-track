@@ -10,8 +10,8 @@ import { Card, CardBody } from '../components/ui/Card'
 export function LoginPage() {
   const { login } = useAuth()
   const navigate = useNavigate()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [email, setEmail] = useState('radeesha2323@gmail.com')
+  const [password, setPassword] = useState('Asd@1234')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
